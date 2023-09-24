@@ -80,6 +80,7 @@ INC += -I./modules/music
 INC += -I./modules/ble
 INC += -I./modules/board
 INC += -I./modules/nrf
+INC += -I./modules/can
 INC += -I../../shared/readline
 INC += -I./drivers/bluetooth
 INC += -I./drivers
@@ -258,13 +259,13 @@ endif
 SRC_NRFX += $(addprefix lib/nrfx/drivers/src/,\
 	prs/nrfx_prs.c \
 	nrfx_uart.c \
-        nrfx_uarte.c \
+	nrfx_uarte.c \
 	nrfx_adc.c \
 	nrfx_saadc.c \
 	nrfx_temp.c \
 	nrfx_rng.c \
 	nrfx_twi.c \
-        nrfx_twim.c \
+	nrfx_twim.c \
 	nrfx_spi.c \
 	nrfx_spim.c \
 	nrfx_rtc.c \
@@ -348,6 +349,7 @@ DRIVERS_SRC_C += $(addprefix modules/,\
 	ble/modble.c \
 	nrf/modnrf.c \
 	nrf/flashbdev.c \
+	can/modcan.c \
 	)
 
 # Custom micropython startup file with smaller interrupt vector table

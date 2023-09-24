@@ -88,6 +88,10 @@
 #define MICROPY_PY_NRF                     (CORE_FEAT)
 #endif
 
+#ifndef MICROPY_PY_CAN
+#define MICROPY_PY_CAN                     (CORE_FEAT)
+#endif
+
 #ifndef MICROPY_HW_ENABLE_INTERNAL_FLASH_STORAGE
 #define MICROPY_HW_ENABLE_INTERNAL_FLASH_STORAGE (CORE_FEAT)
 #endif
