@@ -52,30 +52,24 @@ K_THREAD_STACK_DEFINE(can_rx_thread_stack, CAN_THREAD_STACK_SIZE);
 checkout zepyhrproject 3.4
 checkout microphthon 1.20
 
-cd zephyrproject; mkdir nrf52840dongle_nrf52840_can; cd nrf52840dongle_nrf52840_can;
+    cd zephyrproject; mkdir nrf52840dongle_nrf52840_can; cd nrf52840dongle_nrf52840_can;
 
 put board to zephyrproject/zephyr/boards/arm/nrf52840dongle_nrf52840_can
-put micropython board config to micropython/ports/zephyr/boards/nrf52840dongle_nrf52840_can.conf
-
-works: nrf52840dk_nrf52840
 
     $ west build -b nrf52840dongle_nrf52840_can ../../micropython/ports/zephyr -p
 
-non-dongle:
+nrf52840dk:
 
     $ west flash
 
-dongle only:
+nrf52840dongle:
 
     $ nrfutil pkg generate --hw-version 52 --sd-req=0x00 --application build/zephyr/zephyr.hex --application-version 1 zephyr.zip
     $ nrfutil dfu usb-serial -pkg zephyr.zip -p /dev/ttyACM0
 
  * https://devicetree-specification.readthedocs.io/en/latest/chapter2-devicetree-basics.html
 
-*/
-
-/*
-NiRen J1 close for 120 ohn termination
+example:
 
 from machine import CAN
 
@@ -85,6 +79,7 @@ def callback(obj):
 c = CAN(loopback=True, on_message=callback)
 
 c.send(0x12, b'\x01\x02\x00\x00\x00')
+
 */
 
 static struct k_thread can_rx_thread_data;
@@ -116,9 +111,7 @@ static void can_rx_callback_function(const struct device *dev, struct can_frame 
 	tuple[2] = mp_obj_new_bytes(frame->data, can_dlc_to_bytes(frame->dlc));
 	mp_obj_t obj = mp_obj_new_tuple(3, tuple);
 	
-	//mp_obj_t callback = MP_STATE_PORT(can_callback_handler);
-	//mp_call_function_1_protected(callback, obj);
-	if (self->callback != MP_OBJ_NULL) {
+	if (self->callback != mp_const_none) {
 		//mp_call_function_1_protected(self->callback, obj);
 		mp_sched_schedule(self->callback, obj);
 	}
@@ -144,7 +137,7 @@ STATIC void can_rx_thread(void *arg1, void *arg2, void *arg3)
 		mp_obj_t obj = mp_obj_new_tuple(3, tuple);
 		
 		//gc_lock();
-		if (self->callback != MP_OBJ_NULL) {
+		if (self->callback != mp_const_none) {
 			//mp_sched_lock();
 			mp_sched_schedule(self->callback, obj);
 			//mp_call_function_1_protected(ctx->callback, obj); // MP_OBJ_FROM_PTR(&mp_builtin_abs_obj)
@@ -310,7 +303,6 @@ STATIC mp_obj_t machine_hard_can_send(mp_obj_t self_in, mp_obj_t canid_in, mp_ob
     }
 
 	// FIXME: obj_in may be int8 int16 int32 float int64 double byte[8]
-	//////////// FIXME: works, but clean this up
 	if (mp_obj_is_float(obj_in)) {
 		float f = (float) mp_obj_get_float(obj_in);
 		// net float
