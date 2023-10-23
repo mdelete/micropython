@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <zephyr/zephyr.h>
+#include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
 
 #include "py/runtime.h"
@@ -48,6 +48,8 @@ typedef struct _machine_pin_irq_obj_t {
 
 STATIC const mp_irq_methods_t machine_pin_irq_methods;
 const mp_obj_base_t machine_pin_obj_template = {&machine_pin_type};
+
+static struct gpio_dt_spec pins = GPIO_DT_SPEC_GET_OR(DT_ALIAS(gpio0), gpios, {0});
 
 void machine_pin_deinit(void) {
     for (machine_pin_irq_obj_t *irq = MP_STATE_PORT(machine_pin_irq_list); irq != NULL; irq = irq->next) {
@@ -124,22 +126,22 @@ STATIC mp_obj_t machine_pin_obj_init_helper(machine_pin_obj_t *self, size_t n_ar
 mp_obj_t mp_pin_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
     mp_arg_check_num(n_args, n_kw, 1, MP_OBJ_FUN_ARGS_MAX, true);
 
-    // get the wanted port
-    if (!mp_obj_is_type(args[0], &mp_type_tuple)) {
-        mp_raise_ValueError(MP_ERROR_TEXT("Pin id must be tuple of (\"GPIO_x\", pin#)"));
+    //const struct device *wanted_port = DEVICE_DT_GET(DT_ALIAS(gpio0));
+	//const struct device *wanted_port = GPIO_DT_SPEC_GET(DT_ALIAS(gpio0), gpios);
+
+    if (!device_is_ready(pins.port)) {
+        mp_raise_ValueError(MP_ERROR_TEXT("device not ready"));
     }
-    mp_obj_t *items;
-    mp_obj_get_array_fixed_n(args[0], 2, &items);
-    const char *drv_name = mp_obj_str_get_str(items[0]);
-    int wanted_pin = mp_obj_get_int(items[1]);
-    const struct device *wanted_port = device_get_binding(drv_name);
-    if (!wanted_port) {
-        mp_raise_ValueError(MP_ERROR_TEXT("invalid port"));
+
+    if (!MP_OBJ_IS_SMALL_INT(args[0])) {
+        mp_raise_ValueError(MP_ERROR_TEXT("invalid pin"));
     }
+
+    int wanted_pin = mp_obj_get_int(args[0]);
 
     machine_pin_obj_t *pin = m_new_obj(machine_pin_obj_t);
     pin->base = machine_pin_obj_template;
-    pin->port = wanted_port;
+    pin->port = pins.port;
     pin->pin = wanted_pin;
 
     if (n_args > 1 || n_kw > 0) {

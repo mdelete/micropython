@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <zephyr/zephyr.h>
+#include <zephyr/kernel.h>
 #include <zephyr/drivers/uart.h>
 
 #include "py/runtime.h"
@@ -60,31 +60,26 @@ STATIC void machine_uart_print(const mp_print_t *print, mp_obj_t self_in, mp_pri
         self->timeout, self->timeout_char);
 }
 
-STATIC void machine_uart_init_helper(machine_uart_obj_t *self, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t machine_uart_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     enum { ARG_timeout, ARG_timeout_char };
+
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_timeout_char, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
-    mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+    mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    self->timeout = args[ARG_timeout].u_int;
-    self->timeout_char = args[ARG_timeout_char].u_int;
-}
+    const struct device *dev = DEVICE_DT_GET(DT_ALIAS(uart0));
 
-STATIC mp_obj_t machine_uart_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
-    mp_arg_check_num(n_args, n_kw, 1, MP_OBJ_FUN_ARGS_MAX, true);
-
-    machine_uart_obj_t *self = mp_obj_malloc(machine_uart_obj_t, &machine_uart_type);
-    self->dev = device_get_binding(mp_obj_str_get_str(args[0]));
-    if (!self->dev) {
-        mp_raise_ValueError(MP_ERROR_TEXT("Bad device name"));
+    if (!device_is_ready(dev)) {
+        mp_raise_ValueError(MP_ERROR_TEXT("device not ready"));
     }
 
-    mp_map_t kw_args;
-    mp_map_init_fixed_table(&kw_args, n_kw, args + n_args);
-    machine_uart_init_helper(self, n_args - 1, args + 1, &kw_args);
+    machine_uart_obj_t *self = mp_obj_malloc(machine_uart_obj_t, &machine_uart_type);
+    self->dev = dev;
+    self->timeout = args[ARG_timeout].u_int;
+    self->timeout_char = args[ARG_timeout_char].u_int;
 
     return MP_OBJ_FROM_PTR(self);
 }
