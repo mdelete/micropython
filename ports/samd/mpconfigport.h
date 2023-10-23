@@ -34,7 +34,6 @@
 // Memory allocation policies
 #define MICROPY_GC_STACK_ENTRY_TYPE         uint16_t
 #define MICROPY_GC_ALLOC_THRESHOLD          (0)
-#define MICROPY_ALLOC_PARSE_CHUNK_INIT      (32)
 #define MICROPY_ALLOC_PATH_MAX              (256)
 #define MICROPY_QSTR_BYTES_IN_HASH          (1)
 
@@ -97,6 +96,8 @@
 #ifndef MICROPY_PY_MACHINE_ADC
 #define MICROPY_PY_MACHINE_ADC              (1)
 #endif
+#define MICROPY_PY_MACHINE_ADC_INCLUDEFILE  "ports/samd/machine_adc.c"
+#define MICROPY_PY_MACHINE_ADC_DEINIT       (1)
 #ifndef MICROPY_PY_MACHINE_DAC
 #define MICROPY_PY_MACHINE_DAC              (1)
 #endif
@@ -128,6 +129,9 @@
 #endif
 #define MICROPY_PY_MACHINE_PIN_MAKE_NEW     mp_pin_make_new
 #define MICROPY_PY_MACHINE_DHT_READINTO     (1)
+#define MICROPY_PY_MACHINE_WDT              (1)
+#define MICROPY_PY_MACHINE_WDT_INCLUDEFILE  "ports/samd/machine_wdt.c"
+#define MICROPY_PY_MACHINE_WDT_TIMEOUT_MS   (1)
 #define MICROPY_PY_ONEWIRE                  (1)
 #define MICROPY_PY_PLATFORM                 (1)
 #define MICROPY_PLATFORM_VERSION            "ASF4"

@@ -33,6 +33,7 @@
 #include "extmod/machine_mem.h"
 #include "extmod/machine_pulse.h"
 #include "extmod/machine_i2c.h"
+#include "extmod/modmachine.h"
 #include "shared/runtime/pyexec.h"
 #include "lib/oofatfs/ff.h"
 #include "lib/oofatfs/diskio.h"
@@ -44,9 +45,6 @@
 #include "timer.h"
 #if MICROPY_PY_MACHINE_HW_PWM || MICROPY_PY_MACHINE_SOFT_PWM
 #include "pwm.h"
-#endif
-#if MICROPY_PY_MACHINE_ADC
-#include "adc.h"
 #endif
 #if MICROPY_PY_MACHINE_TEMP
 #include "temp.h"

@@ -117,16 +117,13 @@ set(MICROPY_SOURCE_DRIVERS
 set(MICROPY_SOURCE_PORT
     fatfs_port.c
     help.c
-    machine_adc.c
     machine_bitstream.c
     machine_i2c.c
-    machine_i2s.c
     machine_pin.c
     machine_rtc.c
     machine_spi.c
     machine_timer.c
     machine_uart.c
-    machine_wdt.c
     main.c
     modmachine.c
     modrp2.c
@@ -150,7 +147,6 @@ set(MICROPY_SOURCE_QSTR
     ${MICROPY_DIR}/shared/runtime/sys_stdio_mphal.c
     ${MICROPY_PORT_DIR}/machine_adc.c
     ${MICROPY_PORT_DIR}/machine_i2c.c
-    ${MICROPY_PORT_DIR}/machine_i2s.c
     ${MICROPY_PORT_DIR}/machine_pin.c
     ${MICROPY_PORT_DIR}/machine_rtc.c
     ${MICROPY_PORT_DIR}/machine_spi.c
@@ -406,6 +402,7 @@ target_include_directories(${MICROPY_TARGET} PRIVATE
 target_compile_options(${MICROPY_TARGET} PRIVATE
     -Wall
     -Werror
+    -g  # always include debug information in the ELF
 )
 
 target_link_options(${MICROPY_TARGET} PRIVATE

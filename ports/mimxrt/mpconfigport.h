@@ -42,7 +42,6 @@ uint32_t trng_random_u32(void);
 #else
 #define MICROPY_GC_STACK_ENTRY_TYPE         uint16_t
 #endif
-#define MICROPY_ALLOC_PARSE_CHUNK_INIT      (32)
 #define MICROPY_ALLOC_PATH_MAX              (256)
 
 // MicroPython emitters
@@ -79,6 +78,8 @@ uint32_t trng_random_u32(void);
 #define MICROPY_PY_OS_URANDOM               (1)
 #define MICROPY_PY_RANDOM_SEED_INIT_FUNC    (trng_random_u32())
 #define MICROPY_PY_MACHINE                  (1)
+#define MICROPY_PY_MACHINE_ADC              (1)
+#define MICROPY_PY_MACHINE_ADC_INCLUDEFILE  "ports/mimxrt/machine_adc.c"
 #define MICROPY_PY_MACHINE_PIN_MAKE_NEW     mp_pin_make_new
 #define MICROPY_PY_MACHINE_BITSTREAM        (1)
 #define MICROPY_PY_MACHINE_PULSE            (1)
@@ -88,10 +89,21 @@ uint32_t trng_random_u32(void);
 #ifndef MICROPY_PY_MACHINE_I2S
 #define MICROPY_PY_MACHINE_I2S              (0)
 #endif
+#define MICROPY_PY_MACHINE_I2S_INCLUDEFILE  "ports/mimxrt/machine_i2s.c"
+#define MICROPY_PY_MACHINE_I2S_CONSTANT_RX  (RX)
+#define MICROPY_PY_MACHINE_I2S_CONSTANT_TX  (TX)
+#define MICROPY_PY_MACHINE_I2S_MCK          (1)
+#define MICROPY_PY_MACHINE_I2S_RING_BUF     (1)
+#ifndef MICROPY_PY_MACHINE_SDCARD
+#define MICROPY_PY_MACHINE_SDCARD           (1)
+#endif
 #define MICROPY_PY_MACHINE_SOFTI2C          (1)
 #define MICROPY_PY_MACHINE_SPI              (1)
 #define MICROPY_PY_MACHINE_SOFTSPI          (1)
 #define MICROPY_PY_MACHINE_TIMER            (1)
+#define MICROPY_PY_MACHINE_WDT              (1)
+#define MICROPY_PY_MACHINE_WDT_INCLUDEFILE  "ports/mimxrt/machine_wdt.c"
+#define MICROPY_PY_MACHINE_WDT_TIMEOUT_MS   (1)
 #define MICROPY_SOFT_TIMER_TICKS_MS         systick_ms
 #define MICROPY_PY_ONEWIRE                  (1)
 

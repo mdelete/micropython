@@ -128,6 +128,7 @@ SRC_HAL_IMX_C += \
 	$(MCU_DIR)/drivers/fsl_edma.c \
 	$(MCU_DIR)/drivers/fsl_flexram.c \
 	$(MCU_DIR)/drivers/fsl_flexspi.c \
+	$(MCU_DIR)/drivers/fsl_gpc.c \
 	$(MCU_DIR)/drivers/fsl_gpio.c \
 	$(MCU_DIR)/drivers/fsl_gpt.c \
 	$(MCU_DIR)/drivers/fsl_lpi2c.c \
@@ -137,6 +138,7 @@ SRC_HAL_IMX_C += \
 	$(MCU_DIR)/drivers/fsl_pit.c \
 	$(MCU_DIR)/drivers/fsl_pwm.c \
 	$(MCU_DIR)/drivers/fsl_sai.c \
+	$(MCU_DIR)/drivers/fsl_snvs_hp.c \
 	$(MCU_DIR)/drivers/fsl_snvs_lp.c \
 	$(MCU_DIR)/drivers/fsl_wdog.c \
 	$(MCU_DIR)/system_$(MCU_SERIES)$(MCU_CORE).c \
@@ -152,7 +154,7 @@ ifeq ($(MICROPY_HW_SDRAM_AVAIL),1)
 SRC_HAL_IMX_C += $(MCU_DIR)/drivers/fsl_semc.c
 endif
 
-ifeq ($(MICROPY_PY_MACHINE_SDCARD),1)
+ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES), MIMXRT1021 MIMXRT1052 MIMXRT1062 MIMXRT1064 MIMXRT1176))
 SRC_HAL_IMX_C += $(MCU_DIR)/drivers/fsl_usdhc.c
 endif
 
@@ -193,17 +195,14 @@ SRC_C += \
 	hal/pwm_backport.c \
 	help.c \
 	led.c \
-	machine_adc.c \
 	machine_bitstream.c \
 	machine_i2c.c \
-	machine_i2s.c \
 	machine_led.c \
 	machine_pin.c \
 	machine_rtc.c \
 	machine_sdcard.c \
 	machine_spi.c \
 	machine_uart.c \
-	machine_wdt.c \
 	main.c \
 	mbedtls/mbedtls_port.c \
 	mimxrt_flash.c \
@@ -331,7 +330,6 @@ endif
 # Set default values for optional variables
 MICROPY_HW_SDRAM_AVAIL ?= 0
 MICROPY_HW_SDRAM_SIZE ?= 0
-MICROPY_PY_MACHINE_SDCARD ?= 0
 
 # Configure default compiler flags
 CFLAGS += \
@@ -351,7 +349,6 @@ CFLAGS += \
 	-DMICROPY_HW_FLASH_SIZE=$(MICROPY_HW_FLASH_SIZE) \
 	-DMICROPY_HW_SDRAM_AVAIL=$(MICROPY_HW_SDRAM_AVAIL) \
 	-DMICROPY_HW_SDRAM_SIZE=$(MICROPY_HW_SDRAM_SIZE) \
-	-DMICROPY_PY_MACHINE_SDCARD=$(MICROPY_PY_MACHINE_SDCARD) \
 	-DSPI_RETRY_TIMES=1000000 \
 	-DUART_RETRY_TIMES=1000000 \
 	-DXIP_BOOT_HEADER_ENABLE=1 \

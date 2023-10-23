@@ -72,8 +72,8 @@
 #define MICROPY_GC_SPLIT_HEAP_AUTO          (1)
 
 // extended modules
-#ifndef MICROPY_ESPNOW
-#define MICROPY_ESPNOW                      (1)
+#ifndef MICROPY_PY_ESPNOW
+#define MICROPY_PY_ESPNOW                   (1)
 #endif
 #ifndef MICROPY_PY_BLUETOOTH
 #define MICROPY_PY_BLUETOOTH                (1)
@@ -96,6 +96,13 @@
 #define MICROPY_PY_OS_UNAME                 (1)
 #define MICROPY_PY_OS_URANDOM               (1)
 #define MICROPY_PY_MACHINE                  (1)
+#define MICROPY_PY_MACHINE_ADC              (1)
+#define MICROPY_PY_MACHINE_ADC_INCLUDEFILE  "ports/esp32/machine_adc.c"
+#define MICROPY_PY_MACHINE_ADC_ATTEN_WIDTH  (1)
+#define MICROPY_PY_MACHINE_ADC_BLOCK        (1)
+#define MICROPY_PY_MACHINE_ADC_INIT         (1)
+#define MICROPY_PY_MACHINE_ADC_READ         (1)
+#define MICROPY_PY_MACHINE_ADC_READ_UV      (1)
 #define MICROPY_PY_MACHINE_PIN_MAKE_NEW     mp_pin_make_new
 #define MICROPY_PY_MACHINE_BITSTREAM        (1)
 #define MICROPY_PY_MACHINE_PULSE            (1)
@@ -115,6 +122,12 @@
 #ifndef MICROPY_PY_MACHINE_I2S
 #define MICROPY_PY_MACHINE_I2S              (1)
 #endif
+#define MICROPY_PY_MACHINE_I2S_INCLUDEFILE  "ports/esp32/machine_i2s.c"
+#define MICROPY_PY_MACHINE_I2S_FINALISER    (1)
+#define MICROPY_PY_MACHINE_I2S_CONSTANT_RX  (I2S_MODE_MASTER | I2S_MODE_RX)
+#define MICROPY_PY_MACHINE_I2S_CONSTANT_TX  (I2S_MODE_MASTER | I2S_MODE_TX)
+#define MICROPY_PY_MACHINE_WDT              (1)
+#define MICROPY_PY_MACHINE_WDT_INCLUDEFILE  "ports/esp32/machine_wdt.c"
 #define MICROPY_PY_NETWORK (1)
 #ifndef MICROPY_PY_NETWORK_HOSTNAME_DEFAULT
 #if CONFIG_IDF_TARGET_ESP32
@@ -151,6 +164,11 @@
 #define MICROPY_FATFS_RPATH                 (2)
 #define MICROPY_FATFS_MAX_SS                (4096)
 #define MICROPY_FATFS_LFN_CODE_PAGE         437 /* 1=SFN/ANSI 437=LFN/U.S.(OEM) */
+
+// task size
+#ifndef MICROPY_TASK_STACK_SIZE
+#define MICROPY_TASK_STACK_SIZE             (16 * 1024)
+#endif
 
 #define MP_STATE_PORT MP_STATE_VM
 
