@@ -31,6 +31,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/can.h>
+#include <zephyr/sys/byteorder.h>
 
 #include "py/runtime.h"
 #include "py/gc.h"
@@ -103,53 +104,51 @@ typedef struct _machine_hard_can_obj_t {
 /*
 static void can_rx_callback_function(const struct device *dev, struct can_frame *frame, void *user_data)
 {
-	machine_hard_can_obj_t *self = user_data;
-	
-	mp_obj_t tuple[3];
-	tuple[0] = mp_obj_new_int(frame->id);
-	tuple[1] = mp_obj_new_int(frame->flags);
-	tuple[2] = mp_obj_new_bytes(frame->data, can_dlc_to_bytes(frame->dlc));
-	mp_obj_t obj = mp_obj_new_tuple(3, tuple);
-	
-	if (self->callback != mp_const_none) {
-		//mp_call_function_1_protected(self->callback, obj);
-		mp_sched_schedule(self->callback, obj);
-	}
+    machine_hard_can_obj_t *self = user_data;
+
+    mp_obj_t tuple[3];
+    tuple[0] = mp_obj_new_int(frame->id);
+    tuple[1] = mp_obj_new_int(frame->flags);
+    tuple[2] = mp_obj_new_bytes(frame->data, can_dlc_to_bytes(frame->dlc));
+    mp_obj_t obj = mp_obj_new_tuple(3, tuple);
+
+    if (self->callback != mp_const_none) {
+        //mp_call_function_1_protected(self->callback, obj);
+        mp_sched_schedule(self->callback, obj);
+    }
 }
 */
 
 STATIC void can_rx_thread(void *arg1, void *arg2, void *arg3)
 {
-	machine_hard_can_obj_t *self = arg1;
-	ARG_UNUSED(arg2);
-	ARG_UNUSED(arg3);
-	struct can_frame msg;
+    machine_hard_can_obj_t *self = arg1;
+    ARG_UNUSED(arg2);
+    ARG_UNUSED(arg3);
+    struct can_frame msg;
 
-	while (1)
-	{
-		k_msgq_get(&can_msgq, &msg, K_FOREVER);
-		atomic_inc(&received_messages);
-		
-		mp_obj_t tuple[3];
-		tuple[0] = mp_obj_new_int(msg.id);
-		tuple[1] = mp_obj_new_int(msg.flags);
-		tuple[2] = mp_obj_new_bytes(msg.data, can_dlc_to_bytes(msg.dlc));
-		mp_obj_t obj = mp_obj_new_tuple(3, tuple);
-		
-		//gc_lock();
-		if (self->callback != mp_const_none) {
-			//mp_sched_lock();
-			mp_sched_schedule(self->callback, obj);
-			//mp_call_function_1_protected(ctx->callback, obj); // MP_OBJ_FROM_PTR(&mp_builtin_abs_obj)
-			//mp_sched_unlock();
-		}
-		//gc_unlock();
-	}
+    while (1) {
+        k_msgq_get(&can_msgq, &msg, K_FOREVER);
+        atomic_inc(&received_messages);
+
+        mp_obj_t tuple[3];
+        tuple[0] = mp_obj_new_int(msg.id);
+        tuple[1] = mp_obj_new_int(msg.flags);
+        tuple[2] = mp_obj_new_bytes(msg.data, can_dlc_to_bytes(msg.dlc));
+        mp_obj_t obj = mp_obj_new_tuple(3, tuple);
+
+        //gc_lock();
+        if (self->callback != mp_const_none) {
+            //mp_sched_lock();
+            mp_sched_schedule(self->callback, obj);
+            //mp_call_function_1_protected(ctx->callback, obj); // MP_OBJ_FROM_PTR(&mp_builtin_abs_obj)
+            //mp_sched_unlock();
+        }
+        //gc_unlock();
+    }
 }
 
 // https://docs.zephyrproject.org/apidoc/latest/group__can__interface.html#gac7ec472c26c564dd7067c49f67c8d2f7
-STATIC const char* can_state_to_str(enum can_state state)
-{
+STATIC const char* can_state_to_str(enum can_state state) {
     switch (state) {
     case CAN_STATE_ERROR_ACTIVE:
         return "error-active";
@@ -167,8 +166,7 @@ STATIC const char* can_state_to_str(enum can_state state)
 }
 
 // https://docs.zephyrproject.org/apidoc/latest/group__can__interface.html#ga446ee31913699de3c80be05d837b5fd5
-STATIC const char* can_error_to_str(int err)
-{
+STATIC const char* can_error_to_str(int err) {
     switch (err) {
     case EINVAL:
         return "EINVAL";
@@ -189,15 +187,14 @@ STATIC const char* can_error_to_str(int err)
     }
 }
 
-STATIC void state_change_callback(const struct device *dev, enum can_state state, struct can_bus_err_cnt err_cnt, void *user_data)
-{
+STATIC void state_change_callback(const struct device *dev, enum can_state state, struct can_bus_err_cnt err_cnt, void *user_data) {
     current_state = state;
     current_err_cnt = err_cnt;
 }
 
 STATIC void machine_hard_can_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
     machine_hard_can_obj_t *self = self_in;
-    mp_printf(print, "CAN(\"%s\", baudrate=%u, loopback=%s, callback=",
+    mp_printf(print, "CAN(\"%s\", baudrate=%u, loopback=%s, on_message=",
         self->dev->name,
         self->config.baudrate,
         self->config.loopback ? "True" : "False"
@@ -214,12 +211,19 @@ STATIC mp_obj_t machine_hard_can_on_message(mp_obj_t self_in, mp_obj_t obj_in) {
         k_thread_abort(rx_tid);
     }
 
-    self->callback = obj_in;
-
     if (mp_obj_is_fun(obj_in)) {
+        self->callback = obj_in;
+
         rx_tid = k_thread_create(&can_rx_thread_data, can_rx_thread_stack, K_THREAD_STACK_SIZEOF(can_rx_thread_stack), can_rx_thread, self, NULL, NULL, CAN_THREAD_PRIORITY, 0, K_NO_WAIT);
+
         if (!rx_tid) {
             mp_raise_ValueError(MP_ERROR_TEXT("create can rx thread failed"));
+        }
+    } else {
+        self->callback = mp_const_none;
+
+        if (obj_in != mp_const_none) {
+            mp_raise_ValueError(MP_ERROR_TEXT("callback is not a function"));
         }
     }
 
@@ -281,6 +285,8 @@ STATIC void can_tx_callback(const struct device *dev, int error, void *user_data
     }
 }
 
+#define mp_obj_is_bytes(o) (mp_obj_is_obj(o) && MP_OBJ_TYPE_GET_SLOT_OR_NULL(((mp_obj_base_t *)MP_OBJ_TO_PTR(o))->type, binary_op) == mp_obj_str_binary_op)
+
 STATIC mp_obj_t machine_hard_can_send(mp_obj_t self_in, mp_obj_t canid_in, mp_obj_t obj_in) {
     machine_hard_can_obj_t *self = self_in;
 
@@ -302,31 +308,30 @@ STATIC mp_obj_t machine_hard_can_send(mp_obj_t self_in, mp_obj_t canid_in, mp_ob
         mp_raise_ValueError(MP_ERROR_TEXT("invalid can id"));
     }
 
-	// FIXME: obj_in may be int8 int16 int32 float int64 double byte[8]
-	if (mp_obj_is_float(obj_in)) {
-		float f = (float) mp_obj_get_float(obj_in);
-		// net float
-		memcpy(frame.data, &f, sizeof(float));
-		frame.dlc = can_bytes_to_dlc(sizeof(float));
-	}
-	else if (mp_obj_is_small_int(obj_in)) {
-		int32_t i = (int32_t) mp_obj_get_int(obj_in);
-		// net int
-		memcpy(frame.data, &i, sizeof(int32_t));
-		frame.dlc = can_bytes_to_dlc(sizeof(int32_t));
-	}
-	else if (mp_obj_is_str_or_bytes(obj_in)) {
-		GET_STR_DATA_LEN(obj_in, s, l);
-		if(l > 8) {
-			mp_raise_ValueError(MP_ERROR_TEXT("payload too large"));
-		} else {
-			memcpy(frame.data, s, l);
-			frame.dlc = can_bytes_to_dlc(l);
-		}
-	} else {
-		mp_raise_ValueError(MP_ERROR_TEXT("unsupported payload"));
-	}
-	///////////////////////////////////////////
+    // FIXME: obj_in may be int8 int16 int32 float int64 double byte[8]
+    if (mp_obj_is_float(obj_in)) {
+        float f = mp_obj_get_float(obj_in);
+        memcpy(frame.data, &f, sizeof(float)); // FIXME: real32 net float?
+        frame.dlc = can_bytes_to_dlc(sizeof(float));
+    } else if (mp_obj_is_small_int(obj_in)) {
+        int32_t val = (int32_t) mp_obj_get_int(obj_in);
+        sys_put_be32(val, frame.data);
+        frame.dlc = can_bytes_to_dlc(sizeof(int32_t));
+    } else if (mp_obj_is_int(obj_in)) {
+        uint64_t val = mp_obj_get_int(obj_in);
+        sys_put_be64(val, frame.data);
+        frame.dlc = can_bytes_to_dlc(sizeof(uint64_t));
+    } else if (mp_obj_is_bytes(obj_in)) {
+        GET_STR_DATA_LEN(obj_in, s, l);
+        if(l > 8) {
+            mp_raise_ValueError(MP_ERROR_TEXT("payload too large"));
+        } else {
+            memcpy(frame.data, s, l);
+            frame.dlc = can_bytes_to_dlc(l);
+        }
+    } else {
+        mp_raise_ValueError(MP_ERROR_TEXT("unsupported payload"));
+    }
 
     //ret = can_send(self->dev, &frame, K_MSEC(25), NULL, NULL);
     ret = can_send(self->dev, &frame, K_FOREVER, can_tx_callback, NULL);

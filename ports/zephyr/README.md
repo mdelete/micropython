@@ -4,9 +4,8 @@ MicroPython port to Zephyr RTOS
 This is a work-in-progress port of MicroPython to Zephyr RTOS
 (http://zephyrproject.org).
 
-This port requires Zephyr version v3.1.0, and may also work on higher
-versions.  All boards supported
-by Zephyr (with standard level of features support, like UART console)
+This port requires Zephyr version v3.2.0, or later. All boards supported by
+Zephyr (with standard level of features support, like UART console)
 should work with MicroPython (but not all were tested).
 
 Features supported at this time:
@@ -39,13 +38,13 @@ setup is correct.
 If you already have Zephyr installed but are having issues building the
 MicroPython port then try installing the correct version of Zephyr via:
 
-    $ west init zephyrproject -m https://github.com/zephyrproject-rtos/zephyr --mr v3.1.0
+    $ west init zephyrproject -m https://github.com/zephyrproject-rtos/zephyr --mr v3.4.0
 
 Alternatively, you don't have to redo the Zephyr installation to just
 switch from master to a tagged release, you can instead do:
 
     $ cd zephyrproject/zephyr
-    $ git checkout v3.1.0
+    $ git checkout v3.4.0
     $ west update
 
 With Zephyr installed you may then need to configure your environment,
@@ -144,6 +143,15 @@ Example of using SPI to write a buffer to the MOSI pin:
     spi.init(baudrate=500000, polarity=1, phase=1, bits=8, firstbit=SPI.MSB)
     spi.write(b'abcd')
 
+Example of using CAN in loopback mode with receive callback:
+
+    from machine import CAN
+
+    def callback(obj):
+        print("obj:", obj)
+
+    c = CAN(loopback=True, on_message=callback)
+    c.send(0x12, b'\x01\x02\x00\x00\x00')
 
 Minimal build
 -------------

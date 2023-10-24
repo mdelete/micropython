@@ -102,7 +102,7 @@ zephyr_library_compile_options(
 )
 
 zephyr_library_compile_definitions(
-    NDEBUG
+    NDEBUG LFS2_NO_ASSERT LFS2_NO_DEBUG
     MP_CONFIGFILE=<${CONFIG_MICROPY_CONFIGFILE}>
     MICROPY_HEAP_SIZE=${CONFIG_MICROPY_HEAP_SIZE}
     FFCONF_H=\"${MICROPY_OOFATFS_DIR}/ffconf.h\"
