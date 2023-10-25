@@ -59,17 +59,6 @@ put board to zephyrproject/zephyr/boards/arm/nrf52840dongle_nrf52840_can
 
     $ west build -b nrf52840dongle_nrf52840_can ../../micropython/ports/zephyr -p
 
-nrf52840dk:
-
-    $ west flash
-
-nrf52840dongle:
-
-    $ nrfutil pkg generate --hw-version 52 --sd-req=0x00 --application build/zephyr/zephyr.hex --application-version 1 zephyr.zip
-    $ nrfutil dfu usb-serial -pkg zephyr.zip -p /dev/ttyACM0
-
- * https://devicetree-specification.readthedocs.io/en/latest/chapter2-devicetree-basics.html
-
 example:
 
 from machine import CAN
@@ -231,6 +220,7 @@ STATIC mp_obj_t machine_hard_can_on_message(mp_obj_t self_in, mp_obj_t obj_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(can_obj_on_mesg_obj, machine_hard_can_on_message);
 
+// FIXME: de-init
 STATIC mp_obj_t machine_hard_can_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     enum {ARG_baudrate, ARG_loopback, ARG_on_message};
 

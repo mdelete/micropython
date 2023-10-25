@@ -8,6 +8,7 @@ extern const mp_obj_type_t machine_i2c_type;
 extern const mp_obj_type_t machine_spi_type;
 extern const mp_obj_type_t machine_can_type;
 extern const mp_obj_type_t machine_uart_type;
+extern const mp_obj_type_t machine_led_type;
 
 MP_DECLARE_CONST_FUN_OBJ_0(machine_info_obj);
 

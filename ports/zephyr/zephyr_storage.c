@@ -49,15 +49,8 @@ typedef struct _zephyr_disk_access_obj_t {
 
 STATIC void zephyr_disk_access_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
     zephyr_disk_access_obj_t *self = self_in;
-    mp_printf(print, "DiskAccess(%s)", self->pdrv);
+    mp_printf(print, "DiskAccess(\"%s\")", self->pdrv);
 }
-
-/*
-import os
-bdev = DiskAccess()
-os.VfsFat.mkfs(bdev)
-os.mount(bdev, '/')
-*/
 
 STATIC mp_obj_t zephyr_disk_access_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
     mp_arg_check_num(n_args, n_kw, 0, 0, false);
@@ -142,7 +135,7 @@ MP_DEFINE_CONST_OBJ_TYPE(
     make_new, zephyr_disk_access_make_new,
     print, zephyr_disk_access_print,
     locals_dict, &zephyr_disk_access_locals_dict
-    );
+);
 #endif // CONFIG_DISK_ACCESS
 
 #ifdef CONFIG_FLASH_MAP
@@ -264,5 +257,5 @@ MP_DEFINE_CONST_OBJ_TYPE(
     make_new, zephyr_flash_area_make_new,
     print, zephyr_flash_area_print,
     locals_dict, &zephyr_flash_area_locals_dict
-    );
+);
 #endif // CONFIG_FLASH_MAP

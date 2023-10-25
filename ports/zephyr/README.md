@@ -13,6 +13,7 @@ Features supported at this time:
 * REPL (interactive prompt) over Zephyr UART console.
 * `time` module for time measurements and delays.
 * `machine.Pin` class for GPIO control, with IRQ support.
+* `machine.Led` class for specialized led control.
 * `machine.I2C` class for I2C control.
 * `machine.SPI` class for SPI control.
 * `machine.CAN` class for CAN control.
@@ -94,6 +95,11 @@ to setup the host side of TAP/SLIP networking. If you get an error like:
 it's a sign that you didn't follow the instructions above. If you would like
 to just run it quickly without extra setup, see "minimal" build below.
 
+For flashing the nrf52840dongle\_nrf52840\_can, special steps have to be taken:
+
+    $ nrfutil pkg generate --hw-version 52 --sd-req=0x00 --application build/zephyr/zephyr.hex --application-version 1 zephyr.zip
+    $ nrfutil dfu usb-serial -pkg zephyr.zip -p /dev/ttyACM0
+
 Quick example
 -------------
 
@@ -153,6 +159,14 @@ Example of using CAN in loopback mode with receive callback:
 
     c = CAN(loopback=True, on_message=callback)
     c.send(0x12, b'\x01\x02\x00\x00\x00')
+
+Example of using DiskAccess:
+
+    import os
+
+    bdev = DiskAccess()
+    os.VfsFat.mkfs(bdev)
+    os.mount(bdev, '/')
 
 Minimal build
 -------------

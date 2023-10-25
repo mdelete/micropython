@@ -157,4 +157,4 @@ MP_DEFINE_CONST_OBJ_TYPE(
     print, machine_uart_print,
     protocol, &uart_stream_p,
     locals_dict, &machine_uart_locals_dict
-    );
+);
