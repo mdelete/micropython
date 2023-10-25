@@ -70,7 +70,7 @@ STATIC mp_obj_t machine_uart_make_new(const mp_obj_type_t *type, size_t n_args, 
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    const struct device *dev = DEVICE_DT_GET(DT_ALIAS(uart0));
+    const struct device *dev = DEVICE_DT_GET_OR_NULL(DT_ALIAS(uart0));
 
     if (!device_is_ready(dev)) {
         mp_raise_ValueError(MP_ERROR_TEXT("device not ready"));

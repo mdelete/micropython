@@ -139,7 +139,7 @@ STATIC void can_rx_thread(void *arg1, void *arg2, void *arg3)
         //gc_lock();
         if (self->callback != mp_const_none) {
             //mp_sched_lock();
-            mp_sched_schedule(self->callback, obj);
+            mp_sched_schedule(self->callback, obj); // use mp_sched_schedule_node when not using it in REPL
             //mp_call_function_1_protected(ctx->callback, obj); // MP_OBJ_FROM_PTR(&mp_builtin_abs_obj)
             //mp_sched_unlock();
         }
@@ -199,7 +199,7 @@ STATIC void machine_hard_can_print(const mp_print_t *print, mp_obj_t self_in, mp
         self->config.baudrate,
         self->config.loopback ? "True" : "False"
     );
-    mp_obj_print_helper(print, self->callback, PRINT_REPR); // FIXME: don't print <function> but callbacks' name
+    mp_obj_print_helper(print, self->callback, PRINT_REPR); // FIXME: don't print <function> but the callbacks' name
     mp_printf(print, ")");
 }
 

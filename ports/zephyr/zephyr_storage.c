@@ -52,10 +52,17 @@ STATIC void zephyr_disk_access_print(const mp_print_t *print, mp_obj_t self_in, 
     mp_printf(print, "DiskAccess(%s)", self->pdrv);
 }
 
+/*
+import os
+bdev = DiskAccess()
+os.VfsFat.mkfs(bdev)
+os.mount(bdev, '/')
+*/
+
 STATIC mp_obj_t zephyr_disk_access_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
-    mp_arg_check_num(n_args, n_kw, 1, 1, false);
+    mp_arg_check_num(n_args, n_kw, 0, 0, false);
     zephyr_disk_access_obj_t *self = mp_obj_malloc(zephyr_disk_access_obj_t, type);
-    self->pdrv = mp_obj_str_get_str(args[0]);
+    self->pdrv = mp_obj_str_get_str(CONFIG_SDMMC_VOLUME_NAME);
 
     if (disk_access_init(self->pdrv) != 0) {
         mp_raise_ValueError(MP_ERROR_TEXT("disk not found"));
