@@ -58,7 +58,7 @@ not have to be in the `ports/zephyr` directory. Assuming you have cloned the
 MicroPython repository into your home directory, you can build the Zephyr port
 for a frdm_k64f board like this:
 
-    $ west build -b frdm_k64f ~/micropython/ports/zephyr
+    $ west build -b nrf52840dongle_nrf52840_can ~/micropython/ports/zephyr
 
 To build for QEMU instead:
 
@@ -163,10 +163,24 @@ Example of using CAN in loopback mode with receive callback:
 Example of using DiskAccess:
 
     import os
+    from zephyr import DiskAccess
 
     bdev = DiskAccess()
     os.VfsFat.mkfs(bdev)
     os.mount(bdev, '/')
+
+Example of using FlashArea:
+
+    import os
+    from zephyr import FlashArea
+
+    bdev = FlashArea()
+    os.VfsFat.mkfs(bdev)
+    os.mount(bdev, '/')
+
+    with open('/hello.txt', 'w') as f:
+        f.write('Hello world')
+    print(open('/hello.txt').read())
 
 Minimal build
 -------------
