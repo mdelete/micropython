@@ -200,10 +200,11 @@ STATIC bool lss_fast_scan (const struct device *dev, mp_obj_t* components[5])
         if (!mp_obj_is_small_int(components[lss_sub]))
             break;
         lss_number = mp_obj_get_int(components[lss_sub]);
+        //mp_printf(&mp_plat_print, "lss_number: %d\n", lss_number);
         if (!lss_fast_scan_send(dev, lss_number, 0, lss_sub, lss_sub+1))
             return false;
     }
-
+    //mp_printf(&mp_plat_print, "lss_sub: %d\n", lss_sub);
     for (; lss_sub < 4; lss_sub++)
     {
         lss_number = 0;
@@ -320,40 +321,30 @@ STATIC mp_obj_t machine_hard_can_on_message(mp_obj_t self_in, mp_obj_t obj_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(can_obj_on_mesg_obj, machine_hard_can_on_message);
 
-STATIC mp_obj_t sdo_download_expedited (size_t n_args, const mp_obj_t *args) // (mp_obj_t self_in, mp_obj_t node_in, mp_obj_t index_in, mp_obj_t subindex_in, mp_obj_t obj_in) // write
+STATIC mp_obj_t sdo_download_expedited (size_t n_args, const mp_obj_t *args) // write
 {
     machine_hard_can_obj_t *self = args[0];
 
     uint8_t nodeid = mp_obj_get_int(args[1]);    // 1<0xFF
-    uint8_t subindex = mp_obj_get_int(args[2]);  // 0<0x100
-    uint16_t index = mp_obj_get_int(args[3]);    // 0<0x10000
+    uint16_t idx   = mp_obj_get_int(args[2]);    // 0<0x10000
+    uint8_t subidx = mp_obj_get_int(args[3]);    // 0<0x100
+    uint8_t len    = mp_obj_get_int(args[4]);
 
     struct can_frame frame;
-    uint8_t len;
-
     memset(&frame, 0, sizeof(frame));
 
-    if (mp_obj_is_float(args[4])) {
-        float f = (float) mp_obj_get_float(args[4]);
+    if (mp_obj_is_float(args[5])) {
+        float f = (float) mp_obj_get_float(args[5]);
         memcpy(&frame.data[4], &f, sizeof(float));
-        len = 4;
-    } else if (mp_obj_is_small_int(args[4])) {
-        uint32_t i = (uint32_t) mp_obj_get_int(args[4]);
+    } else if (mp_obj_is_small_int(args[5])) {
+        uint32_t i = (uint32_t) mp_obj_get_int(args[5]);
         memcpy(&frame.data[4], &i, sizeof(uint32_t));
-        if (i < 0x100) {
-            len = 1;
-        } else if (i < 0x10000) {
-            len = 2;
-        } else {
-            len = 4;
-        }
-    } else if (mp_obj_is_type(args[4], &mp_type_bytes)) {
-        GET_STR_DATA_LEN(args[4], s, l);
-        if(l > 4) {
+    } else if (mp_obj_is_type(args[5], &mp_type_bytes)) {
+        GET_STR_DATA_LEN(args[5], s, l);
+        if(l > len) {
             mp_raise_ValueError(MP_ERROR_TEXT("payload too large"));
         } else {
             memcpy(&frame.data[4], s, l);
-            len = l;
         }
     } else {
         mp_raise_ValueError(MP_ERROR_TEXT("unsupported payload"));
@@ -362,23 +353,23 @@ STATIC mp_obj_t sdo_download_expedited (size_t n_args, const mp_obj_t *args) // 
     frame.id = 0x600 + nodeid;
     frame.dlc = 8;
     frame.data[0] = ((4 - len) << 2) | 0x23;
-    UNALIGNED_PUT(index, (uint16_t *)&frame.data[1]);
-    frame.data[3] = subindex;
+    UNALIGNED_PUT(idx, (uint16_t *)&frame.data[1]);
+    frame.data[3] = subidx;
 
     can_send(self->dev, &frame, K_FOREVER, can_tx_callback, NULL);
 
 	// FIXME: return result
 	return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(can_obj_sdo_exp_download_obj, 5, 5, sdo_download_expedited);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(can_obj_sdo_exp_download_obj, 6, 6, sdo_download_expedited);
 
 STATIC mp_obj_t sdo_upload_expedited (size_t n_args, const mp_obj_t *args) // read
 {
     machine_hard_can_obj_t *self = args[0];
 
-    uint8_t nodeid = mp_obj_get_int(args[1]);    // 1<0xFF
-    uint8_t subindex = mp_obj_get_int(args[2]);  // 0<0x100
-    uint16_t index = mp_obj_get_int(args[3]);    // 0<0x10000
+    uint8_t  nodeid = mp_obj_get_int(args[1]);    // 1<0xFF
+    uint16_t idx    = mp_obj_get_int(args[2]);    // 0<0x10000
+    uint8_t  subidx = mp_obj_get_int(args[3]);    // 0<0x100
 
     struct can_frame frame;
 
@@ -387,8 +378,8 @@ STATIC mp_obj_t sdo_upload_expedited (size_t n_args, const mp_obj_t *args) // re
     frame.id = 0x600 + nodeid;
     frame.dlc = 8;
     frame.data[0] = 0x40;
-    UNALIGNED_PUT(index, (uint16_t *)&frame.data[1]);
-    frame.data[3] = subindex;
+    UNALIGNED_PUT(idx, (uint16_t *)&frame.data[1]);
+    frame.data[3] = subidx;
 
     can_send(self->dev, &frame, K_FOREVER, can_tx_callback, NULL);
 
@@ -509,8 +500,9 @@ STATIC mp_obj_t lss_fastscan (size_t n_args, const mp_obj_t *args)
 {
     machine_hard_can_obj_t *self = args[0];
     mp_obj_t components[5];
+    int i;
 
-    for (int i = 1; i < n_args; i++) {
+    for (i = 1; i < n_args; i++) {
         if (!mp_obj_is_small_int(args[i]))
             mp_raise_ValueError(MP_ERROR_TEXT("parameter must be integer"));
         if (i > 1)
@@ -518,6 +510,9 @@ STATIC mp_obj_t lss_fastscan (size_t n_args, const mp_obj_t *args)
         else
             components[4] = args[i];
     }
+	for (; i < 5; i++) {
+		components[i-2] = mp_const_none;
+	}
 
     if (lss_fast_scan(self->dev, (void***)&components)) {
         return mp_obj_new_tuple(5, components);
