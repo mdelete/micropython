@@ -182,37 +182,47 @@ STATIC bool lss_configure_node (const struct device *dev, uint8_t canid)
     return ret;
 }
 
-STATIC bool lss_fast_scan (const struct device *dev, uint8_t id, mp_obj_t* components[5])
+STATIC bool lss_fast_scan (const struct device *dev, mp_obj_t* components[5])
 {
     uint8_t lss_sub;
     uint8_t bit_checked;
     uint32_t lss_number;
+    uint8_t id = mp_obj_get_int(components[4]);
 
-    if(lss_fast_scan_send(dev, 0, 0x80U, 0, 0))
-    {
-        for (lss_sub = 0; lss_sub < 4; lss_sub++)
-        {
-            lss_number = 0;
-            bit_checked = 0x1FU;
-            while (true)
-            {
-                if (!lss_fast_scan_send(dev, lss_number, bit_checked, lss_sub, lss_sub))
-                    lss_number |= 1UL << bit_checked;
-                if (bit_checked == 0x00U)
-                    break;
-                bit_checked--;
-            }
-            if (!lss_fast_scan_send(dev, lss_number, bit_checked, lss_sub, (lss_sub == 3) ? 0 : (lss_sub+1))) {
-                return false;
-            }
-            //mp_printf(&mp_plat_print, "lss %08x\n", lss_number);
-            components[lss_sub+1] = mp_obj_new_int(lss_number);
-        }
-        components[0] = mp_obj_new_int(id);
-        return lss_configure_node(dev, id);
-    } else {
+    if (id < 1 || id > 0x7f)
+        mp_raise_ValueError(MP_ERROR_TEXT("invalid can id"));
+
+    if (!lss_fast_scan_send(dev, 0, 0x80U, 0, 0))
         return false;
+
+    for (lss_sub = 0; lss_sub < 3; lss_sub++)
+    {
+        if (!mp_obj_is_small_int(components[lss_sub]))
+            break;
+        lss_number = mp_obj_get_int(components[lss_sub]);
+        if (!lss_fast_scan_send(dev, lss_number, 0, lss_sub, lss_sub+1))
+            return false;
     }
+
+    for (; lss_sub < 4; lss_sub++)
+    {
+        lss_number = 0;
+        bit_checked = 0x1FU;
+        while (true)
+        {
+            if (!lss_fast_scan_send(dev, lss_number, bit_checked, lss_sub, lss_sub))
+                lss_number |= 1UL << bit_checked;
+            if (bit_checked == 0x00U)
+                break;
+            bit_checked--;
+        }
+        if (!lss_fast_scan_send(dev, lss_number, bit_checked, lss_sub, (lss_sub == 3) ? 0 : (lss_sub+1))) {
+            return false;
+        }
+        components[lss_sub] = mp_obj_new_int(lss_number);
+    }
+
+    return lss_configure_node(dev, id);
 }
 #endif
 
@@ -495,26 +505,27 @@ STATIC mp_obj_t machine_hard_can_send(mp_obj_t self_in, mp_obj_t canid_in, mp_ob
 STATIC MP_DEFINE_CONST_FUN_OBJ_3(can_obj_send_obj, machine_hard_can_send);
 
 #ifdef CONFIG_CANOPEN_LSS
-STATIC mp_obj_t lss_fastscan(mp_obj_t self_in, mp_obj_t canid_in) {
-    machine_hard_can_obj_t *self = self_in;
+STATIC mp_obj_t lss_fastscan (size_t n_args, const mp_obj_t *args)
+{
+    machine_hard_can_obj_t *self = args[0];
     mp_obj_t components[5];
-    uint8_t canid = 0;
 
-    if (mp_obj_is_small_int(canid_in)) {
-        canid = mp_obj_get_int(canid_in);
+    for (int i = 1; i < n_args; i++) {
+        if (!mp_obj_is_small_int(args[i]))
+            mp_raise_ValueError(MP_ERROR_TEXT("parameter must be integer"));
+        if (i > 1)
+            components[i-2] = args[i];
+        else
+            components[4] = args[i];
     }
 
-    if (canid < 1 || canid > 0x7f) {
-        mp_raise_ValueError(MP_ERROR_TEXT("invalid can id"));
-    }
-
-    if (lss_fast_scan(self->dev, canid, (void***)&components)) {
+    if (lss_fast_scan(self->dev, (void***)&components)) {
         return mp_obj_new_tuple(5, components);
     }
 
     return mp_obj_new_bool(false);
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_2(can_obj_lss_fastscan_obj, lss_fastscan);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(can_obj_lss_fastscan_obj, 2, 5, lss_fastscan);
 #endif
 
 STATIC mp_obj_t machine_hard_can_status(mp_obj_t self_in) {
