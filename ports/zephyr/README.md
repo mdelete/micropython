@@ -8,6 +8,8 @@ This port requires Zephyr version v3.2.0, or later. All boards supported by
 Zephyr (with standard level of features support, like UART console)
 should work with MicroPython (but not all were tested).
 
+Tested using Zephyr 3.4 and Micropython 1.20.
+
 Features supported at this time:
 
 * REPL (interactive prompt) over Zephyr UART console.
@@ -56,9 +58,9 @@ Once Zephyr is ready to use you can build the MicroPython port just like any
 other Zephyr application. You can do this anywhere in your file system, it does
 not have to be in the `ports/zephyr` directory. Assuming you have cloned the
 MicroPython repository into your home directory, you can build the Zephyr port
-for a frdm_k64f board like this:
+for a nrf52840dongle\_nrf52840 board like this:
 
-    $ west build -b nrf52840dongle_nrf52840_can ~/micropython/ports/zephyr
+    $ west build -b nrf52840dongle_nrf52840 ~/micropython/ports/zephyr
 
 To build for QEMU instead:
 
@@ -95,7 +97,7 @@ to setup the host side of TAP/SLIP networking. If you get an error like:
 it's a sign that you didn't follow the instructions above. If you would like
 to just run it quickly without extra setup, see "minimal" build below.
 
-For flashing the nrf52840dongle\_nrf52840\_can, special steps have to be taken:
+For flashing the nrf52840dongle\_nrf52840, special steps have to be taken:
 
     $ nrfutil pkg generate --hw-version 52 --sd-req=0x00 --application build/zephyr/zephyr.hex --application-version 1 zephyr.zip
     $ nrfutil dfu usb-serial -pkg zephyr.zip -p /dev/ttyACM0

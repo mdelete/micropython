@@ -41,6 +41,9 @@ config MICROPY_VFS_LFS1
 config MICROPY_VFS_LFS2
 	bool "LittleFs version 2 file system"
 
+config CANOPEN_LSS
+	bool "LSS support for CANOpen"
+
 endmenu # MicroPython Options
 
 source "Kconfig.zephyr"

@@ -49,7 +49,7 @@ typedef struct _machine_pin_irq_obj_t {
 STATIC const mp_irq_methods_t machine_pin_irq_methods;
 const mp_obj_base_t machine_pin_obj_template = {&machine_pin_type};
 
-static struct gpio_dt_spec pins = GPIO_DT_SPEC_GET_OR(DT_ALIAS(gpio0), gpios, {0});
+static struct gpio_dt_spec pins = GPIO_DT_SPEC_GET_OR(DT_ALIAS(pins), gpios, {0});
 
 void machine_pin_deinit(void) {
     for (machine_pin_irq_obj_t *irq = MP_STATE_PORT(machine_pin_irq_list); irq != NULL; irq = irq->next) {

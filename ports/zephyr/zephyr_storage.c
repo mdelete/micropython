@@ -4,6 +4,7 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2019 NXP
+ * Copyright (c) 2023 Marc Delling
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -49,7 +50,7 @@ typedef struct _zephyr_disk_access_obj_t {
 
 STATIC void zephyr_disk_access_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
     zephyr_disk_access_obj_t *self = self_in;
-    mp_printf(print, "DiskAccess(\"%s\")", self->pdrv);
+    mp_printf(print, "DiskAccess('%s')", self->pdrv);
 }
 
 STATIC mp_obj_t zephyr_disk_access_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
@@ -163,7 +164,7 @@ STATIC mp_obj_t zephyr_flash_area_make_new(const mp_obj_type_t *type, size_t n_a
     if (mp_obj_is_small_int(args[0]))
         self->block_size = mp_obj_get_int(args[0]);
     else
-        self->block_size = 512;
+        self->block_size = 4096;
 
     if (self->block_size <= 0) {
         mp_raise_ValueError(MP_ERROR_TEXT("invalid block size"));

@@ -102,15 +102,15 @@ STATIC void vfs_init(void) {
     const char *mount_point_str = NULL;
     int ret = 0;
 
-    #ifdef CONFIG_DISK_DRIVER_SDMMC
+#ifdef CONFIG_DISK_DRIVER_SDMMC
     mp_obj_t args[] = { mp_obj_new_str("SDMMC", 5) };
     bdev = MP_OBJ_TYPE_GET_SLOT(&zephyr_disk_access_type, make_new)(&zephyr_disk_access_type, ARRAY_SIZE(args), 0, args);
     mount_point_str = "/sd";
-    #elif defined(CONFIG_FLASH_MAP) && DT_HAS_FIXED_PARTITION_LABEL(storage)
+#elif defined(CONFIG_FLASH_MAP) && DT_HAS_FIXED_PARTITION_LABEL(storage)
     mp_obj_t args[] = { MP_OBJ_NEW_SMALL_INT(4096) };
     bdev = MP_OBJ_TYPE_GET_SLOT(&zephyr_flash_area_type, make_new)(&zephyr_flash_area_type, ARRAY_SIZE(args), 0, args);
     mount_point_str = "/flash";
-    #endif
+#endif
 
     if ((bdev != NULL)) {
         mount_point = mp_obj_new_str(mount_point_str, strlen(mount_point_str));

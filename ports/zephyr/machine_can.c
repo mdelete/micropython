@@ -50,36 +50,14 @@
 CAN_MSGQ_DEFINE(can_msgq, 2);
 K_THREAD_STACK_DEFINE(can_rx_thread_stack, CAN_THREAD_STACK_SIZE);
 
-#define LSS 1
-
-#ifdef LSS
+#ifdef CONFIG_CANOPEN_LSS
 #define LSS_STEP_TIMEOUT K_MSEC(125)
 K_SEM_DEFINE(lss_sem_ident_slave, 1, 1);
 K_SEM_DEFINE(lss_sem_cfg_node_id, 1, 1);
+//K_SEM_DEFINE(can_sem_sdo_reply, 1, 1);
 static const struct can_frame lss_master_tpl = { .id = 0x7e5, .res0 = 0, .dlc = 8, .flags = 0, 0, .data = { 0, 0, 0, 0, 0, 0, 0, 0 } };
+static const struct can_frame nmt_master_tpl = { .id = 0x000, .res0 = 0, .dlc = 2, .flags = 0, 0, .data = { 0, 0, 0, 0, 0, 0, 0, 0 } };
 #endif
-/*
-checkout zepyhrproject 3.4
-checkout microphthon 1.20
-
-    cd zephyrproject; mkdir nrf52840dongle_nrf52840_can; cd nrf52840dongle_nrf52840_can;
-
-put board to zephyrproject/zephyr/boards/arm/nrf52840dongle_nrf52840_can
-
-    $ west build -b nrf52840dongle_nrf52840_can ../../micropython/ports/zephyr -p
-
-example:
-
-from machine import CAN
-
-def callback(obj):
-	print("obj:", obj)
-
-c = CAN(loopback=True, on_message=callback)
-
-c.send(0x12, b'\x01\x02\x00\x00\x00')
-
-*/
 
 static struct k_thread can_rx_thread_data;
 static struct can_bus_err_cnt current_err_cnt;
@@ -120,6 +98,14 @@ STATIC const char* can_error_to_str(int err) {
     }
 }
 
+enum nmt_state {
+    nmt_operational = 0x01,       // pdo works
+    nmt_stop = 0x02,              // only nmt works
+    nmt_pre_operational = 0x80,   // everything except pdo works
+    nmt_reset_node = 0x81,        // clear config and reset node
+    nmt_reset_communcation = 0x82 // reset node
+};
+
 STATIC void can_tx_callback(const struct device *dev, int error, void *user_data)
 {
     if (error != 0) {
@@ -127,7 +113,17 @@ STATIC void can_tx_callback(const struct device *dev, int error, void *user_data
     }
 }
 
-#ifdef LSS
+#ifdef CONFIG_CANOPEN_LSS
+STATIC void nmt_set_state (const struct device *dev, enum nmt_state state, uint8_t canid)
+{
+    struct can_frame frame = nmt_master_tpl;
+
+    frame.data[0] = state;
+    frame.data[1] = canid;
+
+    can_send(dev, &frame, K_FOREVER, can_tx_callback, NULL);
+}
+
 STATIC bool lss_fast_scan_send(const struct device *dev, uint32_t addr_number, uint8_t bit_check, uint8_t addr_part, uint8_t addr_next)
 {
     int err;
@@ -231,7 +227,7 @@ STATIC void can_rx_thread(void *arg1, void *arg2, void *arg3)
         k_msgq_get(&can_msgq, &msg, K_FOREVER);
         atomic_inc(&received_messages);
 
-#ifdef LSS
+#ifdef CONFIG_CANOPEN_LSS
         if (msg.id == 0x7e4) {
             if (msg.data[0] == 0x4f) {
                 k_sem_give(&lss_sem_ident_slave);
@@ -314,6 +310,83 @@ STATIC mp_obj_t machine_hard_can_on_message(mp_obj_t self_in, mp_obj_t obj_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(can_obj_on_mesg_obj, machine_hard_can_on_message);
 
+STATIC mp_obj_t sdo_download_expedited (size_t n_args, const mp_obj_t *args) // (mp_obj_t self_in, mp_obj_t node_in, mp_obj_t index_in, mp_obj_t subindex_in, mp_obj_t obj_in) // write
+{
+    machine_hard_can_obj_t *self = args[0];
+
+    uint8_t nodeid = mp_obj_get_int(args[1]);    // 1<0xFF
+    uint8_t subindex = mp_obj_get_int(args[2]);  // 0<0x100
+    uint16_t index = mp_obj_get_int(args[3]);    // 0<0x10000
+
+    struct can_frame frame;
+    uint8_t len;
+
+    memset(&frame, 0, sizeof(frame));
+
+    if (mp_obj_is_float(args[4])) {
+        float f = (float) mp_obj_get_float(args[4]);
+        memcpy(&frame.data[4], &f, sizeof(float));
+        len = 4;
+    } else if (mp_obj_is_small_int(args[4])) {
+        uint32_t i = (uint32_t) mp_obj_get_int(args[4]);
+        memcpy(&frame.data[4], &i, sizeof(uint32_t));
+        if (i < 0x100) {
+            len = 1;
+        } else if (i < 0x10000) {
+            len = 2;
+        } else {
+            len = 4;
+        }
+    } else if (mp_obj_is_type(args[4], &mp_type_bytes)) {
+        GET_STR_DATA_LEN(args[4], s, l);
+        if(l > 4) {
+            mp_raise_ValueError(MP_ERROR_TEXT("payload too large"));
+        } else {
+            memcpy(&frame.data[4], s, l);
+            len = l;
+        }
+    } else {
+        mp_raise_ValueError(MP_ERROR_TEXT("unsupported payload"));
+    }
+
+    frame.id = 0x600 + nodeid;
+    frame.dlc = 8;
+    frame.data[0] = ((4 - len) << 2) | 0x23;
+    UNALIGNED_PUT(index, (uint16_t *)&frame.data[1]);
+    frame.data[3] = subindex;
+
+    can_send(self->dev, &frame, K_FOREVER, can_tx_callback, NULL);
+
+	// FIXME: return result
+	return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(can_obj_sdo_exp_download_obj, 5, 5, sdo_download_expedited);
+
+STATIC mp_obj_t sdo_upload_expedited (size_t n_args, const mp_obj_t *args) // read
+{
+    machine_hard_can_obj_t *self = args[0];
+
+    uint8_t nodeid = mp_obj_get_int(args[1]);    // 1<0xFF
+    uint8_t subindex = mp_obj_get_int(args[2]);  // 0<0x100
+    uint16_t index = mp_obj_get_int(args[3]);    // 0<0x10000
+
+    struct can_frame frame;
+
+    memset(&frame, 0, sizeof(frame));
+
+    frame.id = 0x600 + nodeid;
+    frame.dlc = 8;
+    frame.data[0] = 0x40;
+    UNALIGNED_PUT(index, (uint16_t *)&frame.data[1]);
+    frame.data[3] = subindex;
+
+    can_send(self->dev, &frame, K_FOREVER, can_tx_callback, NULL);
+
+	//FIXME: return result
+	return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(can_obj_sdo_exp_upload_obj, 4, 4, sdo_upload_expedited);
+
 // FIXME: de-init
 STATIC mp_obj_t machine_hard_can_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     enum {ARG_baudrate, ARG_loopback, ARG_on_message};
@@ -357,6 +430,10 @@ STATIC mp_obj_t machine_hard_can_make_new(const mp_obj_type_t *type, size_t n_ar
     can_set_mode(dev, cfg.loopback ? CAN_MODE_LOOPBACK : CAN_MODE_NORMAL);
     can_set_state_change_callback(dev, state_change_callback, NULL);
     can_start(dev);
+
+#ifdef CONFIG_CANOPEN_LSS
+    nmt_set_state(dev, nmt_reset_communcation, 0);
+#endif
 
     return MP_OBJ_FROM_PTR(self);
 }
@@ -417,7 +494,7 @@ STATIC mp_obj_t machine_hard_can_send(mp_obj_t self_in, mp_obj_t canid_in, mp_ob
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_3(can_obj_send_obj, machine_hard_can_send);
 
-#ifdef LSS
+#ifdef CONFIG_CANOPEN_LSS
 STATIC mp_obj_t lss_fastscan(mp_obj_t self_in, mp_obj_t canid_in) {
     machine_hard_can_obj_t *self = self_in;
     mp_obj_t components[5];
@@ -476,8 +553,10 @@ STATIC const mp_rom_map_elem_t can_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_status),       MP_ROM_PTR(&can_obj_status_obj)  },
     { MP_ROM_QSTR(MP_QSTR_errors),       MP_ROM_PTR(&can_obj_errors_obj)  },
     { MP_ROM_QSTR(MP_QSTR_on_message),   MP_ROM_PTR(&can_obj_on_mesg_obj) },
-#ifdef LSS
-    { MP_ROM_QSTR(MP_QSTR_lss_fastscan), MP_ROM_PTR(&can_obj_lss_fastscan_obj) },
+#ifdef CONFIG_CANOPEN_LSS
+    { MP_ROM_QSTR(MP_QSTR_lss_fastscan),     MP_ROM_PTR(&can_obj_lss_fastscan_obj) },
+    { MP_ROM_QSTR(MP_QSTR_sdo_exp_download), MP_ROM_PTR(&can_obj_sdo_exp_download_obj) },
+    { MP_ROM_QSTR(MP_QSTR_sdo_exp_upload),   MP_ROM_PTR(&can_obj_sdo_exp_upload_obj) },
 #endif
 };
 STATIC MP_DEFINE_CONST_DICT(mp_machine_can_locals_dict, can_locals_dict_table);
