@@ -51,10 +51,10 @@ CAN_MSGQ_DEFINE(can_msgq, 2);
 K_THREAD_STACK_DEFINE(can_rx_thread_stack, CAN_THREAD_STACK_SIZE);
 
 #ifdef CONFIG_CANOPEN_LSS
-#define LSS_STEP_TIMEOUT K_MSEC(125)
+#define LSS_STEP_TIMEOUT (K_MSEC(125))
+K_MSGQ_DEFINE(sdo_msgq, sizeof(struct can_frame), 1, 1);
 K_SEM_DEFINE(lss_sem_ident_slave, 1, 1);
 K_SEM_DEFINE(lss_sem_cfg_node_id, 1, 1);
-//K_SEM_DEFINE(can_sem_sdo_reply, 1, 1);
 static const struct can_frame lss_master_tpl = { .id = 0x7e5, .res0 = 0, .dlc = 8, .flags = 0, 0, .data = { 0, 0, 0, 0, 0, 0, 0, 0 } };
 static const struct can_frame nmt_master_tpl = { .id = 0x000, .res0 = 0, .dlc = 2, .flags = 0, 0, .data = { 0, 0, 0, 0, 0, 0, 0, 0 } };
 #endif
@@ -246,6 +246,11 @@ STATIC void can_rx_thread(void *arg1, void *arg2, void *arg3)
                 k_sem_give(&lss_sem_cfg_node_id);
             }
             continue;
+        } else if (msg.id > 0x580 || msg.id < 0x600) {
+            while (k_msgq_put(&sdo_msgq, &msg, K_NO_WAIT) != 0) {
+                k_msgq_purge(&sdo_msgq);
+            }
+            continue;
         }
 #endif
 
@@ -358,7 +363,13 @@ STATIC mp_obj_t sdo_download_expedited (size_t n_args, const mp_obj_t *args) // 
 
     can_send(self->dev, &frame, K_FOREVER, can_tx_callback, NULL);
 
-	// FIXME: return result
+	struct can_frame reply;
+	while (k_msgq_get(&sdo_msgq, &reply, K_MSEC(125)) == 0) {
+		uint8_t i = reply.id & 0x7f;
+		if (i == nodeid)
+			return mp_obj_new_bool(true);
+	}
+
 	return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(can_obj_sdo_exp_download_obj, 6, 6, sdo_download_expedited);
@@ -383,7 +394,15 @@ STATIC mp_obj_t sdo_upload_expedited (size_t n_args, const mp_obj_t *args) // re
 
     can_send(self->dev, &frame, K_FOREVER, can_tx_callback, NULL);
 
-	//FIXME: return result
+	struct can_frame reply;
+	while (k_msgq_get(&sdo_msgq, &reply, K_MSEC(125)) == 0) {
+		uint8_t i = reply.id & 0x7f;
+		float f = *((float*)&reply.data[4]);
+		mp_printf(&mp_plat_print, "sdo: %02x %f\n", i, f);
+		if (i == nodeid)
+			return mp_obj_new_float(f);
+	}
+
 	return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(can_obj_sdo_exp_upload_obj, 4, 4, sdo_upload_expedited);
