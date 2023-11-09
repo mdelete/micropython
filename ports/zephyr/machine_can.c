@@ -398,7 +398,7 @@ STATIC mp_obj_t sdo_upload_expedited (size_t n_args, const mp_obj_t *args) // re
 	while (k_msgq_get(&sdo_msgq, &reply, K_MSEC(125)) == 0) {
 		uint8_t i = reply.id & 0x7f;
 		float f = *((float*)&reply.data[4]);
-		mp_printf(&mp_plat_print, "sdo: %02x %f\n", i, f);
+		//mp_printf(&mp_plat_print, "sdo: %02x %f\n", i, f);
 		if (i == nodeid)
 			return mp_obj_new_float(f);
 	}

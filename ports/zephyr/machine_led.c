@@ -32,7 +32,7 @@
 
 #if MICROPY_PY_MACHINE
 
-#define N_LEDS 4
+#define N_LEDS 3
 
 typedef struct _machine_led_obj_t {
     mp_obj_base_t base;
@@ -44,7 +44,6 @@ static const struct gpio_dt_spec leds[N_LEDS] = {
     GPIO_DT_SPEC_GET_OR(DT_ALIAS(led0), gpios, {0}),
     GPIO_DT_SPEC_GET_OR(DT_ALIAS(led1), gpios, {0}),
     GPIO_DT_SPEC_GET_OR(DT_ALIAS(led2), gpios, {0}),
-    GPIO_DT_SPEC_GET_OR(DT_ALIAS(led3), gpios, {0}),
 };
 
 STATIC void machine_led_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
