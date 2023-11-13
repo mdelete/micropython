@@ -65,7 +65,7 @@ mp_obj_t mp_led_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, 
     int led_id = args[ARG_id].u_int;
     bool state = args[ARG_on].u_bool;
 
-    if (led_id < 0 || led_id > N_LEDS) {
+    if (led_id < 0 || led_id >= N_LEDS) {
         mp_raise_ValueError(MP_ERROR_TEXT("invalid led"));
     }
 
