@@ -394,16 +394,16 @@ STATIC mp_obj_t sdo_upload_expedited (size_t n_args, const mp_obj_t *args) // re
 
     can_send(self->dev, &frame, K_FOREVER, can_tx_callback, NULL);
 
-	struct can_frame reply;
-	while (k_msgq_get(&sdo_msgq, &reply, K_MSEC(125)) == 0) {
-		uint8_t i = reply.id & 0x7f;
-		float f = *((float*)&reply.data[4]);
-		//mp_printf(&mp_plat_print, "sdo: %02x %f\n", i, f);
-		if (i == nodeid)
-			return mp_obj_new_float(f);
-	}
+    struct can_frame reply;
+    while (k_msgq_get(&sdo_msgq, &reply, K_MSEC(125)) == 0) {
+        uint8_t i = reply.id & 0x7f;
+        float f = *((float*)&reply.data[4]);
+        //mp_printf(&mp_plat_print, "sdo: %02x %f\n", i, f);
+        if (i == nodeid)
+            return mp_obj_new_float(f);
+    }
 
-	return mp_const_none;
+    return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(can_obj_sdo_exp_upload_obj, 4, 4, sdo_upload_expedited);
 
@@ -501,7 +501,7 @@ STATIC mp_obj_t machine_hard_can_send(mp_obj_t self_in, mp_obj_t canid_in, mp_ob
             frame.dlc = can_bytes_to_dlc(l);
         }
     } else {
-        mp_raise_ValueError(MP_ERROR_TEXT("unsupported payload"));
+        mp_raise_ValueError(MP_ERROR_TEXT("unsupported payload: needs float, int, or byte[]"));
     }
 
     ret = can_send(self->dev, &frame, K_FOREVER, can_tx_callback, NULL);
@@ -529,9 +529,9 @@ STATIC mp_obj_t lss_fastscan (size_t n_args, const mp_obj_t *args)
         else
             components[4] = args[i];
     }
-	for (; i < 5; i++) {
-		components[i-2] = mp_const_none;
-	}
+    for (; i < 5; i++) {
+        components[i-2] = mp_const_none;
+    }
 
     if (lss_fast_scan(self->dev, (void***)&components)) {
         return mp_obj_new_tuple(5, components);

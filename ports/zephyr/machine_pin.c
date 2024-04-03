@@ -127,6 +127,7 @@ mp_obj_t mp_pin_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, 
     //const struct device *wanted_port = DEVICE_DT_GET(DT_ALIAS(gpio0));
     //const struct device *wanted_port = GPIO_DT_SPEC_GET(DT_ALIAS(gpio0), gpios);
     static struct gpio_dt_spec pins = GPIO_DT_SPEC_GET_OR(DT_ALIAS(pins), gpios, {0});
+	//const struct device *wanted_port = device_get_binding("GPIO_0");
 
     if (!device_is_ready(pins.port)) {
         mp_raise_ValueError(MP_ERROR_TEXT("device not ready"));
@@ -140,7 +141,7 @@ mp_obj_t mp_pin_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, 
 
     machine_pin_obj_t *pin = m_new_obj(machine_pin_obj_t);
     pin->base = machine_pin_obj_template;
-    pin->port = pins.port;
+    pin->port = pins.port; // wanted_port;
     pin->pin = wanted_pin;
 
     if (n_args > 1 || n_kw > 0) {
@@ -295,7 +296,7 @@ MP_DEFINE_CONST_OBJ_TYPE(
     call, machine_pin_call,
     protocol, &machine_pin_pin_p,
     locals_dict, &machine_pin_locals_dict
-    );
+);
 
 STATIC mp_uint_t machine_pin_irq_trigger(mp_obj_t self_in, mp_uint_t new_trigger) {
     machine_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
