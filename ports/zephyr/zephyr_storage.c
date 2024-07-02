@@ -4,6 +4,7 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2019 NXP
+ * Copyright (c) 2023 Marc Delling
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -49,12 +50,14 @@ typedef struct _zephyr_disk_access_obj_t {
 
 static void zephyr_disk_access_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
     zephyr_disk_access_obj_t *self = self_in;
-    mp_printf(print, "DiskAccess(%s)", self->pdrv);
+    mp_printf(print, "DiskAccess('%s')", self->pdrv);
 }
 
 static mp_obj_t zephyr_disk_access_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
     mp_arg_check_num(n_args, n_kw, 1, 1, false);
     zephyr_disk_access_obj_t *self = mp_obj_malloc(zephyr_disk_access_obj_t, type);
+
+    mp_check_self(mp_obj_is_str(args[0]));
     self->pdrv = mp_obj_str_get_str(args[0]);
 
     if (disk_access_init(self->pdrv) != 0) {
@@ -139,8 +142,6 @@ MP_DEFINE_CONST_OBJ_TYPE(
 #endif // CONFIG_DISK_ACCESS
 
 #ifdef CONFIG_FLASH_MAP
-const mp_obj_type_t zephyr_flash_area_type;
-
 typedef struct _zephyr_flash_area_obj_t {
     mp_obj_base_t base;
     const struct flash_area *area;
@@ -151,17 +152,22 @@ typedef struct _zephyr_flash_area_obj_t {
 
 static void zephyr_flash_area_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
     zephyr_flash_area_obj_t *self = self_in;
-    mp_printf(print, "FlashArea(%d)", self->id);
+    mp_printf(print, "FlashArea(%d): %d blocks of size %d", self->id, self->block_count, self->block_size);
 }
 
 static mp_obj_t zephyr_flash_area_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
-    mp_arg_check_num(n_args, n_kw, 2, 2, false);
+    mp_arg_check_num(n_args, n_kw, 0, 1, false);
     zephyr_flash_area_obj_t *self = mp_obj_malloc(zephyr_flash_area_obj_t, type);
-    self->id = mp_obj_get_int(args[0]);
-    self->block_size = mp_obj_get_int(args[1]);
 
-    if (self->block_size <= 0) {
-        mp_raise_ValueError(MP_ERROR_TEXT("invalid block size"));
+    self->id = DT_FIXED_PARTITION_ID(DT_NODE_BY_FIXED_PARTITION_LABEL(storage));
+
+    if (mp_obj_is_small_int(args[0])) {
+        self->block_size = mp_obj_get_int(args[0]);
+        if (self->block_size <= 0) {
+            mp_raise_ValueError(MP_ERROR_TEXT("invalid block size"));
+        }
+    } else {
+        self->block_size = 4096;
     }
 
     if (flash_area_open(self->id, &self->area) != 0) {
@@ -244,8 +250,8 @@ static const mp_rom_map_elem_t zephyr_flash_area_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_readblocks), MP_ROM_PTR(&zephyr_flash_area_readblocks_obj) },
     { MP_ROM_QSTR(MP_QSTR_writeblocks), MP_ROM_PTR(&zephyr_flash_area_writeblocks_obj) },
     { MP_ROM_QSTR(MP_QSTR_ioctl), MP_ROM_PTR(&zephyr_flash_area_ioctl_obj) },
-    #if FLASH_AREA_LABEL_EXISTS(storage)
-    { MP_ROM_QSTR(MP_QSTR_STORAGE), MP_ROM_INT(FLASH_AREA_ID(storage)) },
+    #if defined(CONFIG_FLASH_MAP) && DT_HAS_FIXED_PARTITION_LABEL(storage)
+    { MP_ROM_QSTR(MP_QSTR_STORAGE), MP_ROM_INT(DT_FIXED_PARTITION_ID(DT_NODE_BY_FIXED_PARTITION_LABEL(storage))) },
     #endif
 };
 static MP_DEFINE_CONST_DICT(zephyr_flash_area_locals_dict, zephyr_flash_area_locals_dict_table);

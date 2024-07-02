@@ -4,18 +4,21 @@ MicroPython port to Zephyr RTOS
 This is a work-in-progress port of MicroPython to Zephyr RTOS
 (http://zephyrproject.org).
 
-This port requires Zephyr version v3.1.0, and may also work on higher
-versions.  All boards supported
-by Zephyr (with standard level of features support, like UART console)
+This port requires Zephyr version v3.2.0, or later. All boards supported by
+Zephyr (with standard level of features support, like UART console)
 should work with MicroPython (but not all were tested).
+
+Tested using Zephyr 3.6 and Micropython 1.23.
 
 Features supported at this time:
 
 * REPL (interactive prompt) over Zephyr UART console.
 * `time` module for time measurements and delays.
 * `machine.Pin` class for GPIO control, with IRQ support.
+* `machine.Led` class for specialized led control.
 * `machine.I2C` class for I2C control.
 * `machine.SPI` class for SPI control.
+* `machine.CAN` class for CAN control.
 * `socket` module for networking (IPv4/IPv6).
 * "Frozen modules" support to allow to bundle Python modules together
   with firmware. Including complete applications, including with
@@ -39,13 +42,13 @@ setup is correct.
 If you already have Zephyr installed but are having issues building the
 MicroPython port then try installing the correct version of Zephyr via:
 
-    $ west init zephyrproject -m https://github.com/zephyrproject-rtos/zephyr --mr v3.1.0
+    $ west init zephyrproject -m https://github.com/zephyrproject-rtos/zephyr --mr v3.4.0
 
 Alternatively, you don't have to redo the Zephyr installation to just
 switch from master to a tagged release, you can instead do:
 
     $ cd zephyrproject/zephyr
-    $ git checkout v3.1.0
+    $ git checkout v3.4.0
     $ west update
 
 With Zephyr installed you may then need to configure your environment,
@@ -55,9 +58,9 @@ Once Zephyr is ready to use you can build the MicroPython port just like any
 other Zephyr application. You can do this anywhere in your file system, it does
 not have to be in the `ports/zephyr` directory. Assuming you have cloned the
 MicroPython repository into your home directory, you can build the Zephyr port
-for a frdm_k64f board like this:
+for a nrf52840dongle\_nrf52840 board like this:
 
-    $ west build -b frdm_k64f ~/micropython/ports/zephyr
+    $ west build -b nrf52840dongle_nrf52840 ~/micropython/ports/zephyr
 
 To build for QEMU instead:
 
@@ -93,6 +96,11 @@ to setup the host side of TAP/SLIP networking. If you get an error like:
 
 it's a sign that you didn't follow the instructions above. If you would like
 to just run it quickly without extra setup, see "minimal" build below.
+
+For flashing the nrf52840dongle\_nrf52840, special steps have to be taken:
+
+    $ nrfutil pkg generate --hw-version 52 --sd-req=0x00 --application build/zephyr/zephyr.hex --application-version 1 zephyr.zip
+    $ nrfutil dfu usb-serial -pkg zephyr.zip -p /dev/ttyACM0
 
 Quick example
 -------------
@@ -144,6 +152,37 @@ Example of using SPI to write a buffer to the MOSI pin:
     spi.init(baudrate=500000, polarity=1, phase=1, bits=8, firstbit=SPI.MSB)
     spi.write(b'abcd')
 
+Example of using CAN in loopback mode with receive callback:
+
+    from machine import CAN
+
+    def callback(obj):
+        print("obj:", obj)
+
+    c = CAN(loopback=True, on_message=callback)
+    c.send(0x12, b'\x01\x02\x00\x00\x00')
+
+Example of using DiskAccess:
+
+    import os
+    from zephyr import DiskAccess
+
+    bdev = DiskAccess()
+    os.VfsFat.mkfs(bdev)
+    os.mount(bdev, '/')
+
+Example of using FlashArea:
+
+    import os
+    from zephyr import FlashArea
+
+    bdev = FlashArea()
+    os.VfsFat.mkfs(bdev)
+    os.mount(bdev, '/')
+
+    with open('/hello.txt', 'w') as f:
+        f.write('Hello world')
+    print(open('/hello.txt').read())
 
 Minimal build
 -------------

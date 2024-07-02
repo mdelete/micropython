@@ -37,7 +37,9 @@ include(${MICROPY_DIR}/extmod/extmod.cmake)
 set(MICROPY_SOURCE_PORT
     main.c
     help.c
+    machine_can.c
     machine_i2c.c
+    machine_led.c
     machine_spi.c
     machine_pin.c
     modbluetooth_zephyr.c
@@ -99,7 +101,7 @@ zephyr_library_compile_options(
 )
 
 zephyr_library_compile_definitions(
-    NDEBUG
+    NDEBUG LFS2_NO_ASSERT LFS2_NO_DEBUG
     MP_CONFIGFILE=<${CONFIG_MICROPY_CONFIGFILE}>
     MICROPY_HEAP_SIZE=${CONFIG_MICROPY_HEAP_SIZE}
     FFCONF_H=\"${MICROPY_OOFATFS_DIR}/ffconf.h\"

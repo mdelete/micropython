@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <zephyr/zephyr.h>
+#include <zephyr/kernel.h>
 #ifdef CONFIG_NETWORKING
 #include <zephyr/net/net_context.h>
 #endif
@@ -106,8 +106,8 @@ static void vfs_init(void) {
     mp_obj_t args[] = { mp_obj_new_str(CONFIG_SDMMC_VOLUME_NAME, strlen(CONFIG_SDMMC_VOLUME_NAME)) };
     bdev = MP_OBJ_TYPE_GET_SLOT(&zephyr_disk_access_type, make_new)(&zephyr_disk_access_type, ARRAY_SIZE(args), 0, args);
     mount_point_str = "/sd";
-    #elif defined(CONFIG_FLASH_MAP) && FLASH_AREA_LABEL_EXISTS(storage)
-    mp_obj_t args[] = { MP_OBJ_NEW_SMALL_INT(FLASH_AREA_ID(storage)), MP_OBJ_NEW_SMALL_INT(4096) };
+    #elif defined(CONFIG_FLASH_MAP) && DT_HAS_FIXED_PARTITION_LABEL(storage)
+    mp_obj_t args[] = { MP_OBJ_NEW_SMALL_INT(4096) };
     bdev = MP_OBJ_TYPE_GET_SLOT(&zephyr_flash_area_type, make_new)(&zephyr_flash_area_type, ARRAY_SIZE(args), 0, args);
     mount_point_str = "/flash";
     #endif
@@ -115,6 +115,9 @@ static void vfs_init(void) {
     if ((bdev != NULL)) {
         mount_point = mp_obj_new_str(mount_point_str, strlen(mount_point_str));
         ret = mp_vfs_mount_and_chdir_protected(bdev, mount_point);
+        if (ret != 0) {
+            bdev = NULL;
+        }
         // TODO: if this failed, make a new file system and try to mount again
     }
 }
@@ -135,7 +138,7 @@ int real_main(void) {
     printf("status: %d\n", r);
     #endif
 
-soft_reset:
+  soft_reset:
     #if MICROPY_ENABLE_GC
     gc_init(heap, heap + sizeof(heap));
     #endif
