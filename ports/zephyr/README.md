@@ -167,7 +167,7 @@ Example of using DiskAccess:
     import os
     from zephyr import DiskAccess
 
-    bdev = DiskAccess()
+    bdev = DiskAccess('SDMMC')
     os.VfsFat.mkfs(bdev)
     os.mount(bdev, '/')
 

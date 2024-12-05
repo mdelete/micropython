@@ -58,10 +58,11 @@
 #define MICROPY_PY_BUILTINS_MEMORYVIEW (1)
 #define MICROPY_PY_BUILTINS_HELP    (1)
 #define MICROPY_PY_BUILTINS_HELP_TEXT zephyr_help_text
-#define MICROPY_PY_ARRAY            (0)
-#define MICROPY_PY_COLLECTIONS      (0)
+#define MICROPY_PY_ARRAY            (1)
+#define MICROPY_PY_COLLECTIONS      (1)
 #define MICROPY_PY_CMATH            (0)
-#define MICROPY_PY_IO               (0)
+#define MICROPY_PY_IO               (1)
+#define MICROPY_PY_JSON             (1)
 #define MICROPY_PY_MICROPYTHON_MEM_INFO (1)
 #define MICROPY_PY_MACHINE          (1)
 #define MICROPY_PY_MACHINE_I2C      (1)
@@ -91,7 +92,7 @@
 #define MICROPY_PY_TIME_INCLUDEFILE "ports/zephyr/modtime.c"
 #define MICROPY_PY_ZEPHYR           (1)
 #define MICROPY_PY_ZSENSOR          (0)
-#define MICROPY_PY_SYS_MODULES      (0)
+#define MICROPY_PY_SYS_MODULES      (1)
 #define MICROPY_LONGINT_IMPL (MICROPY_LONGINT_IMPL_LONGLONG)
 #define MICROPY_FLOAT_IMPL (MICROPY_FLOAT_IMPL_FLOAT)
 #define MICROPY_PY_BUILTINS_COMPLEX (0)
